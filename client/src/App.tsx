@@ -1,12 +1,12 @@
 import { Routes, Route } from 'react-router-dom';
 import ListPage from './pages/ListPage';
-import SinglePage from './pages/SinglePage';
+import SinglePageWithErrorBoundary from './pages/components/SinglePageWithErrorBoundary';
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<ListPage />} />
-      <Route path="/:id" element={<SinglePage />} />
+      <Route path="/:id" element={<SinglePageWithErrorBoundary />} />
     </Routes>
   );
 }

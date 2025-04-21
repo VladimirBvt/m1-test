@@ -1,63 +1,60 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ListItem } from './components';
+import React, {
+  useMemo,
+  useState,
+  useCallback,
+  type ChangeEvent, useDeferredValue
+} from 'react';
 import useData from './useData';
-import useSort from './useSort';
-
-const SubTitle: React.FC<any> = ({children}) => (
-    <h2 className={'list-subtitle'}>Active Item ID: {children}</h2>
-)
+import useSort from '../features/sort-items/useSort';
+import {ItemsList} from '../widgets/items-list/items-list';
+import {Subtitle} from '../shared/ui/subtitle/subtitle';
+import {filterItems} from '../features/filter-items/utils';
 
 function ListPage() {
-    const items = useData();
-    const [sortedItems, sortBy, handleSortClick] = useSort(items);
-    
-    const [activeItemId,  setActiveItemId] = useState<any>(null);
-    const [filteredItems, setFilteredItems] = useState<any[]>([]);
-    const [query, setQuery] = useState<string>('');
-    
-    const activeItemText = useMemo(() => activeItemId ? activeItemId : 'Empty', []);
-    
-  const handleItemClick = (id: any) => {
+  const items = useData();
+
+  const [activeItemId, setActiveItemId] = useState<number | null>(null);
+  const [query, setQuery] = useState<string>('');
+
+  const deferredQuery = useDeferredValue(query);
+
+  const filteredItems = useMemo(() => {
+    return filterItems(items, deferredQuery);
+  }, [items, deferredQuery]);
+
+  const [sortedItems, sortBy, handleSortClick] = useSort(filteredItems);
+
+  const deferredSortBy = useDeferredValue(sortBy);
+
+  const isLoading = query !== deferredQuery || sortBy !== deferredSortBy;
+
+  const activeItemText = useMemo(() => typeof activeItemId === 'number' ? activeItemId : 'Empty', [activeItemId]);
+
+  const handleItemClick = useCallback((id: number) => {
     setActiveItemId(id);
-  };
-  
-  const handleQueryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      setQuery(event.target.value);
+  }, []);
+
+  const handleQueryChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setQuery(event.target.value);
   }
-    
-    useEffect(() => {
-        setFilteredItems(sortedItems);
-    }, [sortedItems]);
-  
-    useEffect(() => {
-        if (query.length > 0) {
-            setFilteredItems(filteredItems.filter(item => `${item.id}`.includes(query.toLowerCase().trimStart().trimEnd().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))));
-        }
-    }, [query, filteredItems]);
 
   return (
     <div className={'list-wrapper'}>
-        <div className="list-header">
-            <h1 className={'list-title'}>Items List</h1>
-            <SubTitle>{activeItemText}</SubTitle>
-            <button onClick={handleSortClick}>Sort ({sortBy === 'ASC' ? 'ASC' : 'DESC'})</button>
-            <input type="text" placeholder={'Filter by ID'} value={query} onChange={handleQueryChange} />
-        </div>
-        <div className="list-container">
-            <div className="list">
-                {filteredItems.length === 0 && <span>Loading...</span>}
-                {filteredItems.map((item, index) => (
-                    <ListItem
-                        key={index}
-                        isactive={activeItemId===item.id}
-                        id={item.id}
-                        name={item.name}
-                        description={item.description}
-                        onClick={handleItemClick}
-                    />
-                ))}
-            </div>
-        </div>
+      <div className="list-header">
+        <h1 className={'list-title'}>Items List</h1>
+
+        <Subtitle text={String(activeItemText)}/>
+
+        <button disabled={isLoading} onClick={handleSortClick}>Sort ({deferredSortBy === 'ASC' ? 'ASC' : 'DESC'})</button>
+        <input type="text" placeholder={'Filter by ID'} value={query} onChange={handleQueryChange}/>
+
+        {isLoading && <span>Updating results...</span>}
+      </div>
+
+      <ItemsList items={sortedItems}
+                 activeItemId={activeItemId}
+                 handleItemClick={handleItemClick}
+      />
     </div>
   );
 }

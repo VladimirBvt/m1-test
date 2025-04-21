@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
+import {IItem} from '../entities/item/model/types';
 
 function useData() {
-	const [items, setItems] = useState<any[]>([]);
-	
+	const [items, setItems] = useState<IItem[]>([]);
+
 	function fetchItems() {
 		fetch(`${process.env.API_URL}/items`)
 			.then(res => res.json())
@@ -11,12 +12,15 @@ function useData() {
 				console.error('Failed to fetch items', err);
 			})
 	}
-	
+
 	useEffect(() => {
 		fetchItems();
-		setInterval(fetchItems, 10000);
+		const intervalId = setInterval(fetchItems, 10000);
+    return () => {
+      clearInterval(intervalId);
+    }
 	}, []);
-	
+
 	return items;
 }
 
